@@ -1,8 +1,6 @@
 # Citation network project
 
-## 2022 fall VKM project
-
-## team 15
+## 2022 fall VKM project -- team 15
 
 [public googlesheet](https://docs.google.com/spreadsheets/d/1rfngbj1W42-KzUHuT28uXmEwZg7bM-FE/edit) с результатами команд
 
