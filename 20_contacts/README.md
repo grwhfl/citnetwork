@@ -15,3 +15,4 @@ discord: ArtemTk
 *Шаманков Николай Олегович
 
 *Шаров Евгений Борисович
+discord: boringeugene
