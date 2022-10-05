@@ -1,0 +1,284 @@
+
+-----------------------------------
+Сервер базы данных:
+185.87.50.149
+CentOS 7
+
+jdbc:postgresql://185.87.50.149:6432/dblp
+
+-------------------------------------
+--установка постгреса на сервер
+
+--подключение репозитория постгреса
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-centos-7
+
+sudo yum install postgresql14-server.x86_64
+sudo /usr/pgsql-14/bin/postgresql-14-setup initdb
+sudo systemctl start postgresql-14
+sudo systemctl enable postgresql-14
+sudo systemctl restart postgresql-14
+
+-- открываем доступ извне
+echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/14/main/pg_hba.conf
+echo "listen_addresses = '*'" >> /etc/postgresql/14/main/postgresql.conf
+
+sudo firewall-cmd --zone=public --add-port=6432/tcp --permanent
+sudo firewall-cmd --reload
+
+-----------------------------------
+--подготовка файлов для загрузки в бд
+mkdir /storage
+chmod a+rwx /storage
+cd /storage
+unzip test1.json.zip
+unzip test2.json.zip
+head -n 1000 test1.json > test1small.json
+
+-- в версии 10 датасета постгрес ругался на символ \u0000
+-- в версии 13 таких проблем не возникло
+--regexp_replace(stringWithNull, '\\u0000', '', 'g')
+--sed -i 's/SEARCH_REGEX/REPLACEMENT/g' INPUTFILE
+--sed -i 's/\/u0000//g' INPUTFILE
+
+---------------------------
+-- загрузка данных "как есть" из файлов в базу данных
+
+-- создание базы данных и схемы
+sudo -i -u postgres
+psql
+\l
+create database dblp
+\c dblp
+create schema dblps
+
+-----------------------------------
+-- read-only пользователь
+CREATE USER mdb with PASSWORD 'xxx';
+GRANT CONNECT ON DATABASE dblp TO mdb;
+GRANT USAGE ON SCHEMA dblps TO mdb;
+
+
+--таблицы: tsmall13 - для тренировки
+--         traw13 - для загрузки json-ов
+create table dblps.tsmall13 (idx SERIAL PRIMARY KEY, batch int, jnb json);
+create table dblps.traw13 (idx SERIAL PRIMARY KEY, batch int, jnb json);
+
+GRANT SELECT ON dblps.tsmall13 TO mdb;
+GRANT SELECT ON dblps.traw13 TO mdb;
+
+-- загрузка данных из json-ов в таблицы
+copy dblps.tsmall13 (jnb) from '/storage/test1small.json' csv quote e'\x01' delimiter e'\x02';
+copy dblps.traw13 (jnb) from '/storage/test1.json' csv quote e'\x01' delimiter e'\x02';
+update dblps.traw13  set batch=1 where batch is null
+copy dblps.traw13 (jnb) from '/storage/test2.json' csv quote e'\x01' delimiter e'\x02';
+update dblps.traw13  set batch=2 where batch is null
+
+--select batch, count(*) from dblps.traw13 group by batch;
+--update dblps.tmp set jnb = regexp_replace(jnb::text, '\\u0000', '', 'g')::json;
+
+--GRANT ALL PRIVILEGES ON DATABASE dblp to mdb;
+--GRANT SELECT ON ALL TABLES IN SCHEMA public TO xxx;
+--REASSIGN OWNED BY mdb TO postgres;
+---------------------------------------
+
+
+create table dblps.tarticle
+(idx bigint,
+batch int,
+id varchar,
+title varchar,
+year varchar,
+n_citation varchar,
+page_start varchar,
+page_end varchar,
+doc_type varchar,
+lang varchar,
+publisher varchar,
+volume varchar,
+issue varchar,
+issn varchar,
+isbn varchar,
+doi varchar,
+pdf varchar,
+abstract varchar);
+
+GRANT SELECT ON dblps.tarticle TO mdb;
+
+insert into dblps.tarticle
+select 
+idx
+, batch
+, btrim((jnb::json->'_id')::varchar, '"') as id
+, btrim((jnb::json->'title')::varchar, '"')  as title
+, btrim((jnb::json->'year')::varchar, '"')  as year
+, btrim((jnb::json->'n_citation')::varchar, '"')  as n_citation
+, btrim((jnb::json->'page_start')::varchar, '"')  as page_start
+, btrim((jnb::json->'page_end')::varchar, '"')  as page_end
+, btrim((jnb::json->'doc_type')::varchar, '"')  as doc_type
+, btrim((jnb::json->'lang')::varchar, '"')  as lang
+, btrim((jnb::json->'publisher')::varchar, '"')  as publisher
+, btrim((jnb::json->'volume')::varchar, '"')  as volume
+, btrim((jnb::json->'issue')::varchar, '"')  as issue
+, btrim((jnb::json->'issn')::varchar, '"')  as issn
+, btrim((jnb::json->'isbn')::varchar, '"')  as isbn
+, btrim((jnb::json->'doi')::varchar, '"')  as doi
+, btrim((jnb::json->'pdf')::varchar, '"')  as pdf
+, btrim((jnb::json->'abstract')::varchar, '"')  as abstract
+from dblps.traw13;
+
+create index article_ind on dblps.tarticle (id);
+
+----------------------------
+
+
+create table dblps.tarticle2tauthor
+(
+article_idx bigint,
+author_id varchar,
+name varchar,
+org varchar
+);
+
+GRANT SELECT ON dblps.tarticle2tauthor TO mdb;
+--alter table dblps.tarticle2tauthor_tmp rename to tarticle2tauthor;
+
+insert into dblps.tarticle2tauthor (article_idx, author_id, name, org)
+select s.idx as article_idx
+, btrim((t.value::json->'_id')::varchar, '"') as author_id
+, btrim((t.value::json->'name')::varchar, '"') as name
+, btrim((t.value::json->'org')::varchar, '"') as org
+from dblps.traw13 s
+cross join lateral json_array_elements ((jnb::json->'authors')::json) as t;
+
+create index article2author_ind on dblps.tarticle2tauthor (article_idx);
+create index author2article_ind on dblps.tarticle2tauthor (author_id);
+
+create table dblps.tauthor
+(author_id varchar,
+f_name varchar,
+f_org varchar
+);
+
+GRANT SELECT ON dblps.tauthor TO mdb;
+
+insert into dblps.tauthor (author_id, f_name, f_org)
+select t.author_id, t.name, t.org 
+from
+(
+    select author_id, name, org
+    , row_number() over (partition by author_id order by article_idx) as rnum
+    from dblps.tarticle2tauthor
+) t
+where t.rnum = 1;
+
+create index author_idx on dblps.tauthor (author_id);
+
+------------------------------------
+
+create table dblps.tarticle2tvenue
+(
+article_idx bigint,
+venue_id varchar,
+venue_raw varchar,
+sid varchar,
+t  varchar
+);
+
+GRANT SELECT ON dblps.tarticle2tvenue TO mdb;
+
+insert into dblps.tarticle2tvenue (article_idx, venue_id, venue_raw, sid, t)
+select s.idx as article_idx
+, btrim((jnb::json->'venue'->'_id')::varchar, '"') as venue_id
+, btrim((jnb::json->'venue'->'raw')::varchar, '"') as venue_raw
+, btrim((jnb::json->'venue'->'sid')::varchar, '"') as sid
+, btrim((jnb::json->'venue'->'t')::varchar, '"') as t
+from dblps.traw13 s;
+
+create index article2venue_ind on dblps.tarticle2tvenue (article_idx);
+create index venue2article_ind on dblps.tarticle2tvenue (venue_id);
+
+
+create table dblps.tvenue
+(venue_id varchar,
+venue_raw varchar
+);
+
+GRANT SELECT ON dblps.tvenue TO mdb;
+
+insert into dblps.tvenue (venue_id, venue_raw)
+select tt.venue_id, tt.venue_raw
+from
+(
+    select venue_id, venue_raw
+    , row_number() over (partition by venue_id order by article_idx) as rnum
+    from dblps.tarticle2tvenue
+) tt
+where tt.rnum = 1;
+
+create index venue_idx on dblps.tvenue (venue_id);
+
+-----------------
+
+
+create table dblps.tarticle_keyword
+(
+article_idx bigint,
+keyword varchar
+);
+
+GRANT SELECT ON dblps.tarticle_keyword TO mdb;
+
+insert into dblps.tarticle_keyword (article_idx, keyword)
+select s.idx as article_idx
+, btrim(t.value::varchar, '"') as keyword
+from dblps.traw13 s
+cross join lateral json_array_elements ((jnb::json->'keywords')::json) as t;
+
+
+create index keyword_idx on dblps.tarticle_keyword (article_idx);
+
+
+----------------
+
+create table dblps.tarticle_fos
+(
+article_idx bigint,
+fos varchar
+);
+
+GRANT SELECT ON dblps.tarticle_fos TO mdb;
+
+insert into dblps.tarticle_fos (article_idx, fos)
+select s.idx as article_idx
+, btrim(t.value::varchar, '"') as fos
+from dblps.traw13 s
+cross join lateral json_array_elements ((jnb::json->'fos')::json) as t;
+
+create index fox_idx on dblps.tarticle_fos (article_idx);
+
+---------------------------
+create table dblps.treference
+(
+article_idx bigint,
+ref_article_id varchar
+);
+
+GRANT SELECT ON dblps.treference TO mdb;
+
+insert into dblps.treference (article_idx, ref_article_id)
+select s.idx as article_idx
+, btrim(t.value::varchar, '"') as fos
+from dblps.traw13 s
+cross join lateral json_array_elements ((jnb::json->'references')::json) as t;
+
+create index article2_idx on dblps.treference (article_idx);
+create index ref_article2_idx on dblps.treference (ref_article_id);
+
+-------------------------
+-------------------------
+--select id as article_id
+--, btrim((t.value::json->'_id')::varchar, '"') as venue_id
+--, btrim((t.value::json->'type')::varchar, '"') as name
+--, btrim((t.value::json->'raw')::varchar, '"') as org
+--from dblps.tsmall13 s
+--cross join lateral json_array_elements ((jnb::json->'venue')::json) as t
