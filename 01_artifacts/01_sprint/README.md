@@ -1,20 +1,23 @@
 Эта папка только для отчетности. Тут только чистовые версии.
 
-## Artifacts
+# Artifacts
 
-# Engineering
+### Engineering
 
-* Схема данных
-* Развернутая БД с данными
-* Backend подключенный к БД, API
+Папка 01_eng:
+* Схема данных: db_schema.png, db_schema_description.xlsx
+* Развернутая БД с данными: connect_credentials.txt
+* Backend подключенный к БД, API: xxxxxxxx
+
+Комментарий: загружено ~40% от общего объема данных. Оставшийся объем планируется загрузить в следующем спринте. API будет реализовано в следующем спринте
 
 # Data Science
 
-* Презентация команды с выводами о dataset
-* Визуализация данных
-* Схема данных
+* Презентация команды с выводами о dataset: [https://www.kaggle.com/code/arinap/notebook75f74a9caf?scriptVersionId=107205633](https://www.kaggle.com/code/arinap/notebook75f74a9caf?scriptVersionId=107205633)
+* Визуализация данных: см. предыдущую ссылку
+* Схема данных: см. папку 01_eng
 
-
+- - -
 ## Описание артефактов (база знаний)
 
 # Engineering
