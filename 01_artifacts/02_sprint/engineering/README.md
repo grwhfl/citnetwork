@@ -1,3 +1,5 @@
+# Инструкция для установки пакетов, необходимых для работы dash.
+
 Once a collaborator pulls down your project - they can then install a fresh python environment:
 
 `python3 -m venv local_python_environment`
