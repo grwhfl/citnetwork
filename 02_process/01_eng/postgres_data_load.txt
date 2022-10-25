@@ -25,6 +25,9 @@ echo "listen_addresses = '*'" >> /etc/postgresql/14/main/postgresql.conf
 sudo firewall-cmd --zone=public --add-port=6432/tcp --permanent
 sudo firewall-cmd --reload
 
+--
+sudo firewall-cmd --zone=public --add-port=8050/tcp --permanent
+
 -----------------------------------
 --подготовка файлов для загрузки в бд
 mkdir /storage
