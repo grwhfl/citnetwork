@@ -10,6 +10,7 @@ from loguru import logger
 from sklearn.linear_model import LogisticRegression
 from typing import Optional
 
+PATH_TO_MODEL = 'models/logreg.pickle'
 model: Optional[LogisticRegression] = None
 
 
@@ -22,11 +23,11 @@ class ModelResponse(BaseModel):
     prediction: List[float]
 
 
-def load_model(path_to_model: str = '../models/logreg.pickle') -> LogisticRegression:
+def load_model(path_to_model: str = PATH_TO_MODEL):
     with open(path_to_model, 'rb') as model_file:
-        logreg_model = pickle.load(model_file)
+        model = pickle.load(model_file)
     logger.info(f"Model loaded from {path_to_model}")
-    return logreg_model
+    return model
 
 
 def predict(data: List[List[str]], features: List[str], model: LogisticRegression):
