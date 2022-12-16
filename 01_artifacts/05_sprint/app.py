@@ -1,7 +1,6 @@
 import sqlalchemy as sqlalchemy
 from dash import Dash, dash_table, html, dcc
 from dash.dependencies import Input, Output
-import dash_auth
 import pandas as pd
 from client import get_server_prediction
 
@@ -15,13 +14,9 @@ columns = ['title', 'abstract', 'id', 'volume', 'year', 'n_citation', 'lang']
 df = pd.read_sql("select * from dblps.tarticle limit 100", con=con)[columns]
 # df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
 
-df[' index'] = range(1, len(df) + 1)
+df['index'] = range(1, len(df) + 1)
 
 app = Dash(__name__)
-auth = dash_auth.BasicAuth(
-    app,
-    VALID_USERNAME_PASSWORD_PAIRS
-)
 
 PAGE_SIZE = 15
 
@@ -105,10 +100,26 @@ def update_table(page_current, page_size, pattern):
          for column, value in row.items()
          } for row in new_data.to_dict('records')
     ]
-    # get prediction for current user search
+
+    return new_data.to_dict('records'), new_tooltip_data
+
+
+@app.callback(
+    Output('datatable-recommendation', 'data'),
+    Output('datatable-recommendation', 'tooltip_data'),
+    Input('datatable-paging', 'data'),
+)
+def update_recommendation(new_data):
+    """get prediction for current user search"""
+    new_data = pd.DataFrame.from_records(new_data).copy()
     recommendation_data_id = list(set(get_server_prediction(new_data)) & set(df.index))
     recommendation_data = df.loc[recommendation_data_id].iloc[:PAGE_SIZE]
-    return new_data.to_dict('records'), new_tooltip_data, recommendation_data.to_dict('records')
+    recommendation_tooltip_data = [
+        {column: {'value': str(value), 'type': 'markdown'}
+         for column, value in row.items()
+         } for row in recommendation_data.to_dict('records')
+    ]
+    return recommendation_data.to_dict('records'), recommendation_tooltip_data
 
 
 if __name__ == '__main__':
