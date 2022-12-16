@@ -1,8 +1,11 @@
 import sqlalchemy as sqlalchemy
 from dash import Dash, dash_table, html, dcc
 from dash.dependencies import Input, Output
+import dash_auth
 import pandas as pd
 from client import get_server_prediction
+
+VALID_USERNAME_PASSWORD_PAIRS = [["team15", "made"]]
 
 # подключение к базе данных со статьями
 engine = sqlalchemy.create_engine(url="postgresql://mdb:Gsdbe4k754ghmf@185.87.50.149:6432/dblp")
@@ -15,6 +18,10 @@ df = pd.read_sql("select * from dblps.tarticle limit 100", con=con)[columns]
 df[' index'] = range(1, len(df) + 1)
 
 app = Dash(__name__)
+auth = dash_auth.BasicAuth(
+    app,
+    VALID_USERNAME_PASSWORD_PAIRS
+)
 
 PAGE_SIZE = 15
 
@@ -83,7 +90,6 @@ app.layout = html.Div([
 @app.callback(
     Output('datatable-paging', 'data'),
     Output('datatable-paging', 'tooltip_data'),
-    Output('datatable-recommendation', 'data'),
     Input('datatable-paging', "page_current"),
     Input('datatable-paging', "page_size"),
     Input('my-input', 'value')
@@ -99,6 +105,7 @@ def update_table(page_current, page_size, pattern):
          for column, value in row.items()
          } for row in new_data.to_dict('records')
     ]
+    # get prediction for current user search
     recommendation_data_id = list(set(get_server_prediction(new_data)) & set(df.index))
     recommendation_data = df.loc[recommendation_data_id].iloc[:PAGE_SIZE]
     return new_data.to_dict('records'), new_tooltip_data, recommendation_data.to_dict('records')
