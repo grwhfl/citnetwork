@@ -26,7 +26,7 @@ L-- tree.txt
 
 ## How to run it
 
-### Start server for predictions
+### Start server for predictions: Rec_sys_articles
 Run this command and wait for "Application startup complete.
 " log.
 
