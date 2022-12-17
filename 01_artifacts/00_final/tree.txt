@@ -1,0 +1,23 @@
+.
+├── EDA
+│   └── Eda.ipynb
+├── Readme.md
+├── Recomendations
+│   ├── Rec_system
+│   │   ├── dashboard
+│   │   │   └── dashboard.py
+│   │   ├── DS
+│   │   │   └── co-author-recommendation.ipynb
+│   │   └── Rec_api
+│   │       ├── api_params.py
+│   │       ├── co_author_api.py
+│   │       └── recomendations.json
+│   └── train_test_split
+│       └── data-split.ipynb
+├── Topic Modeling
+│   ├── classification.ipynb
+│   ├── classification_model_logreg.joblib
+│   └── clasterization_pipeline.ipynb
+└── tree.txt
+
+8 directories, 12 files
