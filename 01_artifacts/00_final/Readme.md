@@ -2,23 +2,23 @@
 
 ### Project stucture
 .
-+-- EDA
-¦   L-- Eda.ipynb
-+-- Readme.md
-+-- Recomendations
-¦   +-- Rec_system
-¦   ¦   +-- dashboard
-¦   ¦   ¦   L-- dashboard.py
-¦   ¦   +-- DS
-¦   ¦   ¦   L-- co-author-recommendation.ipynb
-¦   ¦   L-- Rec_api
-¦   ¦       +-- api_params.py
-¦   ¦       +-- co_author_api.py
-¦   ¦       L-- recomendations.json
-¦   L-- train_test_split
-¦       L-- data-split.ipynb
-+-- Topic Modeling
-¦   +-- classification.ipynb
-¦   +-- classification_model_logreg.joblib
-¦   L-- clasterization_pipeline.ipynb
-L-- tree.txt
++-- EDA  
+Â¦Â Â  L-- Eda.ipynb  
++-- Readme.md  
++-- Recomendations  
+Â¦Â Â  +-- Rec_system  
+Â¦Â Â  Â¦Â Â  +-- dashboard  
+Â¦Â Â  Â¦Â Â  Â¦Â Â  L-- dashboard.py  
+Â¦Â Â  Â¦Â Â  +-- DS  
+Â¦Â Â  Â¦Â Â  Â¦Â Â  L-- co-author-recommendation.ipynb  
+Â¦Â Â  Â¦Â Â  L-- Rec_api  
+Â¦Â Â  Â¦Â Â      +-- api_params.py  
+Â¦Â Â  Â¦Â Â      +-- co_author_api.py  
+Â¦Â Â  Â¦Â Â      L-- recomendations.json  
+Â¦Â Â  L-- train_test_split  
+Â¦Â Â      L-- data-split.ipynb  
++-- Topic Modeling  
+Â¦Â Â  +-- classification.ipynb  
+Â¦Â Â  +-- classification_model_logreg.joblib  
+Â¦Â Â  L-- clasterization_pipeline.ipynb  
+L-- tree.txt  
