@@ -2,18 +2,13 @@ import sys
 import json
 import logging
 import pathlib
-import joblib
-import pandas as pd
 from typing import Union, List
 import faiss
-import pickle
 
 from fastapi import FastAPI
 from fastapi_health import health
 
-from typing import Literal
 from pydantic import BaseModel, conlist
-from fastapi.exceptions import HTTPException
 from sentence_transformers import SentenceTransformer
 
 
