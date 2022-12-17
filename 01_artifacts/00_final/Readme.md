@@ -22,3 +22,12 @@
 ¦   +-- classification_model_logreg.joblib  
 ¦   L-- clasterization_pipeline.ipynb  
 L-- tree.txt  
+
+
+## How to run it
+
+### Start server for predictions
+Run this command and wait for "Application startup complete.
+" log.
+
+`OMP_NUM_THREADS=1 uvicorn main:app --reload --host 0.0.0.0 --port 8000`
