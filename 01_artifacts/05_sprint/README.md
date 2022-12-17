@@ -9,4 +9,4 @@ Run this command and wait for "Application startup complete.
 ### Start dashboard
 After server started run 
 
-`python3 app.py`
+`python3 dashboard.py`

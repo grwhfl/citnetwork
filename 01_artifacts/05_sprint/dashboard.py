@@ -13,9 +13,14 @@ engine = sqlalchemy.create_engine(url="postgresql://mdb:Gsdbe4k754ghmf@185.87.50
 con = engine.connect()
 
 columns = ['title', 'abstract', 'id', 'volume', 'year', 'n_citation', 'lang']
-df = pd.read_sql("select * from dblps.tarticle limit 100", con=con)[columns]
-# df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
-
+df = []
+for year in range(2000, 2020):
+    df_year = pd.read_sql("SELECT title, abstract, id, volume, year, n_citation, lang "
+                          f"FROM dblps.tarticle WHERE (year = '{year}') and (title is not null) "
+                          f"and (abstract != '') LIMIT 28000",
+                          con=con)[columns]
+    df.append(df_year)
+df = pd.concat(df, axis=0)
 df['index'] = range(1, len(df) + 1)
 
 article_columns = ['article_idx', 'name']
@@ -26,10 +31,12 @@ app = Dash(__name__)
 
 PAGE_SIZE = 15
 
+
 # визуализация графа
 def add_edge(f_item, s_item, graph=None):
     graph.add_edge(f_item, s_item)
     graph.add_edge(s_item, f_item)
+
 
 def make_graph(df):
     graph = nx.Graph()
@@ -38,32 +45,35 @@ def make_graph(df):
 
     for i in df.index:
         if df['article_idx'][i] not in articles.keys():
-            articles[df['article_idx'][i]] = []    
+            articles[df['article_idx'][i]] = []
         else:
             articles[df['article_idx'][i]].append(df['name'][i])
 
     for article, authors in articles.items():
         for i in range(len(authors)):
-            for j in range(i+1, len(authors)):
+            for j in range(i + 1, len(authors)):
                 add_edge(authors[i], authors[j], graph)
 
     return graph
 
+
 def show_net(graph):
     nt = Network(height='590px',
-                    width='100%',
-                    bgcolor='#222222',
-                    font_color='white', 
-                    notebook=True)
+                 width='100%',
+                 bgcolor='#222222',
+                 font_color='white',
+                 notebook=True)
     nt.barnes_hut()
     nt.from_nx(graph)
     nt.write_html('test_graph.html')
     return nt
 
+
 def show_graph(df):
     df = df.dropna()
     graph = make_graph(df)
     return show_net(graph)
+
 
 nt = show_graph(df_article_author)
 
@@ -126,15 +136,17 @@ app.layout = html.Div([
                 '''
         }],
     ),
-    html.Div(style={'text-align': 'center'}, 
-        children=[html.Iframe(srcDoc=nt.html,
-                style={
-                    "height": "600px", 
-                    "width": "50%", 
-                    'align': 'center'
-                    })
-        ]
-    )
+    html.Br(),
+    html.H3("Take a look at the citation graph."),
+    html.Div(style={'text-align': 'center'},
+             children=[html.Iframe(srcDoc=nt.html,
+                                   style={
+                                       "height": "600px",
+                                       "width": "50%",
+                                       'align': 'center'
+                                   })
+                       ]
+             )
 
 ])
 
@@ -169,8 +181,8 @@ def update_table(page_current, page_size, pattern):
 def update_recommendation(new_data):
     """get prediction for current user search"""
     new_data = pd.DataFrame.from_records(new_data).copy()
-    recommendation_data_id = list(set(get_server_prediction(new_data)) & set(df.index))
-    recommendation_data = df.loc[recommendation_data_id].iloc[:PAGE_SIZE]
+    recommendation_data_id = get_server_prediction(new_data)
+    recommendation_data = df.loc[df['id'].isin(recommendation_data_id)].iloc[:PAGE_SIZE]
     recommendation_tooltip_data = [
         {column: {'value': str(value), 'type': 'markdown'}
          for column, value in row.items()
