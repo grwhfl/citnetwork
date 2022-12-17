@@ -11,9 +11,14 @@ engine = sqlalchemy.create_engine(url="postgresql://mdb:Gsdbe4k754ghmf@185.87.50
 con = engine.connect()
 
 columns = ['title', 'abstract', 'id', 'volume', 'year', 'n_citation', 'lang']
-df = pd.read_sql("select * from dblps.tarticle limit 100", con=con)[columns]
-# df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
-
+df = []
+for year in range(2000, 2020):
+    df_year = pd.read_sql("SELECT title, abstract, id, volume, year, n_citation, lang "
+                          f"FROM dblps.tarticle WHERE (year = '{year}') and (title is not null) "
+                          f"and (abstract != '') LIMIT 28000",
+                          con=con)[columns]
+    df.append(df_year)
+df = pd.concat(df, axis=0)
 df['index'] = range(1, len(df) + 1)
 
 app = Dash(__name__)
@@ -112,8 +117,8 @@ def update_table(page_current, page_size, pattern):
 def update_recommendation(new_data):
     """get prediction for current user search"""
     new_data = pd.DataFrame.from_records(new_data).copy()
-    recommendation_data_id = list(set(get_server_prediction(new_data)) & set(df.index))
-    recommendation_data = df.loc[recommendation_data_id].iloc[:PAGE_SIZE]
+    recommendation_data_id = get_server_prediction(new_data)
+    recommendation_data = df.loc[df['id'].isin(recommendation_data_id)].iloc[:PAGE_SIZE]
     recommendation_tooltip_data = [
         {column: {'value': str(value), 'type': 'markdown'}
          for column, value in row.items()
